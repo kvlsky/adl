@@ -1,0 +1,40 @@
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00031538.JPEG
+Irish setter, red setter
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00031538.JPEG
+Irish setter, red setter
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00007553.JPEG
+cocker spaniel, English cocker spaniel, cocker
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00007553.JPEG
+cocker spaniel, English cocker spaniel, cocker
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00002618.JPEG
+safe
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00002618.JPEG
+safe
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00002634.JPEG
+hammer
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00002634.JPEG
+hammer
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00002623.JPEG
+shield, buckler
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00002623.JPEG
+shield, buckler
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00007529.JPEG
+clog, geta, patten, sabot
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00007529.JPEG
+clog, geta, patten, sabot
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00017529.JPEG
+guillotine
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00017529.JPEG
+guillotine
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00017506.JPEG
+maraca
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00017506.JPEG
+maraca
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00031530.JPEG
+scorpion
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00031530.JPEG
+scorpion
+MobileNetV2: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00017517.JPEG
+Leonberg
+InceptionV3: Exc_1/Assignment1_supplementary/test_images/ILSVRC2012_val_00017517.JPEG
+Leonberg
