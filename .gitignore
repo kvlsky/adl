@@ -30,6 +30,11 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+logs/*
+logs/
+tf_ckpts/*
+tf_ckpts/
+.DS_Store
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -134,3 +139,4 @@ dmypy.json
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
+nohup.out

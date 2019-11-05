@@ -1,15 +1,19 @@
 import tensorflow as tf
 import os
 
+physical_devices = tf.config.experimental.list_physical_devices('GPU')
+assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-base_path = 'Exc_2/simpsons_for_students/imgs'
+base_path = 'Exc_2/imgs'
 labels = [l for l in os.listdir(base_path)]
 labels = sorted(labels)
 
 dict = {}
 with open('Exc_2/class_map.txt', 'w+') as f:
     for idx, label in enumerate(labels):
-        f.write(f'{idx},{label}\n')
+        # f.write(f'{idx},{label}\n')
+        f.write('{},{}\n'.format(idx, label))
         dict[label] = idx
 
 n_total = sum([len(files) for r, d, files in os.walk(base_path)])
@@ -18,7 +22,7 @@ total_val = 0
 
 with open('Exc_2/train.txt', 'w+') as train_f:
     with open('Exc_2/val.txt', 'w+') as val_f:
-        for path, subdirs, files in os.walk('Exc_2/simpsons_for_students/imgs/'):
+        for path, subdirs, files in os.walk('Exc_2/imgs/'):
             for file in files:
                 if not file.endswith('.jpg'):
                     files.remove(file)
@@ -30,13 +34,13 @@ with open('Exc_2/train.txt', 'w+') as train_f:
             num_val = n_samples - num_train
             total_train += num_train
             total_val += num_val
-            print(f'Dir: {class_dir}, N train: {num_train}, N val: {num_val}')
+            # print(f'Dir: {class_dir}, N train: {num_train}, N val: {num_val}')
             for name in files[:num_train]:
                 file = os.path.join(path, name)
-                train_f.write(f'{file},{dict[class_dir]}\n')
+                train_f.write('{},{}\n'.format(file,dict[class_dir]))
             for name in files[num_train:]:
                 file = os.path.join(path, name)
-                val_f.write(f'{file},{dict[class_dir]}\n')
+                val_f.write('{},{}\n'.format(file,dict[class_dir]))
 
 
 def read_image(fname, mode):
@@ -81,11 +85,12 @@ def save_img(img, name):
     conv_img = tf.image.convert_image_dtype(conv_img, dtype=tf.uint8)
     conv_img = tf.cast(conv_img, tf.uint8)
     conv_img = tf.io.encode_jpeg(conv_img, quality=100)
-    tf.io.write_file(f'Exc_2/res_2_1/{name}_result.jpg', conv_img)
+    tf.io.write_file('Exc_2/res_img/{}_result.jpg'.format(name), conv_img)
 
 
 ds = create_dataset(tf.estimator.ModeKeys.TRAIN)
 for img, label in ds:
     for idx, image in enumerate(img):
-        save_img(image, f'{idx}_')
+        save_img(image, '{}_'.format(idx))
+        print('saved', idx)
     break
