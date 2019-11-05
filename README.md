@@ -1,2 +1,1 @@
 # adl
-ps: wsudsgba
