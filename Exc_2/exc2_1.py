@@ -1,47 +1,37 @@
 import tensorflow as tf
 import os
+import pandas as pd
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-base_path = 'Exc_2/imgs'
-labels = [l for l in os.listdir(base_path)]
-labels = sorted(labels)
+data = pd.read_csv('Exc_2/annotation.txt', header=None,)
+labels = data[5].to_list()
+labels = sorted(list(set(labels)))
 
 dict = {}
 with open('Exc_2/class_map.txt', 'w+') as f:
     for idx, label in enumerate(labels):
-        # f.write(f'{idx},{label}\n')
         f.write('{},{}\n'.format(idx, label))
         dict[label] = idx
 
-n_total = sum([len(files) for r, d, files in os.walk(base_path)])
-total_train = 0
-total_val = 0
+img_labels = data[[0, 5]]
+
 
 with open('Exc_2/train.txt', 'w+') as train_f:
     with open('Exc_2/val.txt', 'w+') as val_f:
-        for path, subdirs, files in os.walk('Exc_2/imgs/'):
-            for file in files:
-                if not file.endswith('.jpg'):
-                    files.remove(file)
-                else:
-                    pass
-            class_dir = path.split('/')[-1]
-            n_samples = len(files)
-            num_train = int(n_samples * 0.9)
-            num_val = n_samples - num_train
-            total_train += num_train
-            total_val += num_val
-            # print(f'Dir: {class_dir}, N train: {num_train}, N val: {num_val}')
-            for name in files[:num_train]:
-                file = os.path.join(path, name)
-                train_f.write('{},{}\n'.format(file,dict[class_dir]))
-            for name in files[num_train:]:
-                file = os.path.join(path, name)
-                val_f.write('{},{}\n'.format(file,dict[class_dir]))
-
+        files = img_labels[0].to_list()
+        labels = img_labels[5].to_list()
+        n_samples = len(files)
+        num_train = int(n_samples * 0.9)
+        num_val = n_samples - num_train
+        for file, cls in zip(files[:num_train], labels[:num_train]):
+            file = 'Exc_2' + file[1:]
+            train_f.write('{},{}\n'.format(file, dict[cls]))
+        for file, cls in zip(files[:num_train], labels[:num_train]):
+            file = 'Exc_2' + file[1:]
+            val_f.write('{},{}\n'.format(file, dict[cls]))
 
 def read_image(fname, mode):
     image = tf.io.read_file(fname)
@@ -53,8 +43,6 @@ def read_image(fname, mode):
     elif mode == tf.estimator.ModeKeys.TRAIN:
         image = tf.image.resize(images=image, size=(256, 256))
         image = tf.image.random_crop(image, size=[224, 224, 3])
-    # image = tf.cast(image, dtype=tf.uint8)
-    # image = tf.reshape(image, [1, 224, 224, 3])
 
     return image
 

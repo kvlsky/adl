@@ -35,6 +35,9 @@ logs/
 tf_ckpts/*
 tf_ckpts/
 .DS_Store
+*.json
+.vscode/*
+.vscode/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

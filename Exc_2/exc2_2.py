@@ -6,15 +6,17 @@ from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.metrics import Mean, SparseCategoricalAccuracy
 from exc2_1 import create_dataset
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+import datetime
 
+physical_devices = tf.config.experimental.list_physical_devices('GPU')
+assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 params = {
     'learning_rate': 0.001,
     'momentum': 0.9,
-    'epochs': 10
+    'epochs': 30
 }
-
 
 ds = create_dataset(tf.estimator.ModeKeys.TRAIN)
 ds_eval = create_dataset(tf.estimator.ModeKeys.EVAL)
@@ -26,107 +28,141 @@ class SimpsonsNet(tf.keras.Model):
         self.base_model = MobileNetV2(input_shape=(224, 224, 3),
                                       weights='imagenet',
                                       include_top=False)
+        # Freeze the convolutional base
         self.base_model.trainable = False
         self.pool = GlobalAveragePooling2D()
-        self.fc2 = Dense(47, activation='softmax')
+        # Add classification layer
+        self.fc2 = Dense(18, activation='softmax')
 
     def call(self, inputs):
-        x = self.pool(inputs)
+        x = self.base_model(inputs)
+        x = self.pool(x)
         x = self.fc2(x)
-
         return x
 
-model = SimpsonsNet()
 
 optimizer = SGD(learning_rate=params['learning_rate'],
                 momentum=params['momentum'])
-loss = SparseCategoricalCrossentropy(from_logits=True,
-                                     reduction=tf.keras.losses.Reduction.NONE)
-train_loss = Mean(name='train_loss')
-train_accuracy = SparseCategoricalAccuracy()
-eval_loss = Mean(name='eval_loss')
-eval_accuracy = SparseCategoricalAccuracy()
+loss_object = SparseCategoricalCrossentropy(from_logits=True,
+                                            reduction=tf.keras.losses.Reduction.NONE)
+# Define our metrics
+train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
+eval_loss = tf.keras.metrics.Mean('eval_loss', dtype=tf.float32)
+eval_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('eval_accuracy')
 
-ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
-manager = tf.train.CheckpointManager(ckpt, 'Exc_2/tf_ckpts', max_to_keep=3)
+
+# Inspect a batch of data:
+for image_batch, label_batch in ds.take(1):
+    pass
+print(image_batch.shape)
+
+model = SimpsonsNet()
+model.build(input_shape=(None, 224, 224, 3))
+model.summary()
 
 
 def train_step(sample, loss=None):
     with tf.GradientTape() as tape:
         features, labels = sample
+        # logits = model(features, training=True)
         logits = model(features)
-        batch_loss = loss(y_pred=logits, y_true=labels)
+        batch_loss = loss_object(y_pred=logits, y_true=labels)
         loss = tf.reduce_sum(batch_loss) / 16
 
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
     train_loss(loss)
-    train_accuracy(y_true=labels, y_pred=logits)
+    train_accuracy(labels, logits)
 
 
 def eval_step(sample, loss=None):
     features, labels = sample
     logits = model(features)
 
-    batch_loss = loss(y_pred=logits, y_true=labels)
+    batch_loss = loss_object(y_pred=logits, y_true=labels)
     loss = tf.reduce_sum(batch_loss) / 16
 
     predictions = tf.nn.softmax(logits)
 
     eval_loss(loss)
-    eval_accuracy(y_true=labels, y_pred=predictions)
+    eval_accuracy(labels, predictions)
 
 
-train_summary_writer = tf.summary.create_file_writer(
-    'Exc_2/tmp/')
-
+# define checkpoints and checkpoint manager
+ckpt = tf.train.Checkpoint(step=tf.Variable(1),
+                           optimizer=optimizer,
+                           net=model)
+manager = tf.train.CheckpointManager(ckpt, 'Exc_2/tf_ckpts', max_to_keep=3)
 ckpt.restore(manager.latest_checkpoint)
+
+# TF summary writers for Tensorboard
+current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
+test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
+img_train_log_dir = 'logs/gradient_tape/' + current_time + '/img_train'
+img_eval_log_dir = 'logs/gradient_tape/' + current_time + '/img_eval'
+train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+eval_summary_writer = tf.summary.create_file_writer(test_log_dir)
+img_train_summary_writer = tf.summary.create_file_writer(img_train_log_dir)
+img_eval_summary_writer = tf.summary.create_file_writer(img_eval_log_dir)
+
+
 if manager.latest_checkpoint:
-    print(f'\nRestored from {manager.latest_checkpoint}')
+    print('\nRestored from {}'.format(manager.latest_checkpoint))
 else:
     print('\nInitializing from scratch...')
 
+# Train for 1 epoch on train_ds
+for step, sample in enumerate(ds):
+    train_step(sample, loss_object)
+    print(f'Train Epoch: 1/1 Step: {step}')
+print('Trained for 1 epoch')
 
-with train_summary_writer.as_default():
-    for epoch in range(params['epochs']):
-        for step, sample in enumerate(ds):
-            train_step(sample, loss)
-            print(f'Train Epoch: {epoch + 1}/{params["epochs"]} Step: {step}',
-                  end="\r")
-            if step % 100 == 0:
-                features = sample[0]
-                tf.summary.image(f'{step}_img', features, step=step)
-                train_summary_writer.flush()
 
-        manager.save(checkpoint_number=optimizer.iterations.numpy())
+for epoch in range(params['epochs']):
+    for step, sample in enumerate(ds):
+        train_step(sample, loss_object)
+        print('Train Epoch: {}/{} Step: {}'.format(epoch+1, params["epochs"], step))
+        if step % 100 == 0:
+            features = sample[0]
+            with img_train_summary_writer.as_default():
+                tf.summary.image('{}_img'.format(step),
+                                    features,
+                                    step=step,
+                                    max_outputs=5)
+                tf.summary.flush()
 
-        for sample in ds_eval:
-            eval_step(sample, loss)
-            print(f'Eval Epoch: {epoch + 1}/{params["epochs"]} Step: {step}',
-                  end="\r")
-            if step % 100 == 0:
-                features = sample[0]
-                tf.summary.image(f'{step}_img', features, step=step)
-                train_summary_writer.flush()
+    with train_summary_writer.as_default():
+        tf.summary.scalar('train_loss', train_loss.result(), step=epoch+1)
+        tf.summary.scalar('train_accuracy', train_accuracy.result(), step=epoch+1)
+    manager.save(checkpoint_number=optimizer.iterations.numpy())
 
-        # if epoch + 1 % 1 == 0:
-            print(f'Step: {step}, epoch: {epoch+1}/{params["epochs"]}\
-                \nLoss: {train_loss.result()}')
-            tf.summary.scalar('train_loss', train_loss.result(), step=epoch)
-            tf.summary.scalar('eval_loss', eval_loss.result(), step=epoch)
-            tf.summary.scalar('train_acc', train_accuracy.result(), step=epoch)
-            tf.summary.scalar('eval_acc', eval_accuracy.result(), step=epoch)
-            train_summary_writer.flush()
+    for sample in ds_eval:
+        eval_step(sample, loss_object)
+        if step % 100 == 0:
+            features = sample[0]
+            with img_eval_summary_writer.as_default():
+                tf.summary.image('{}_img'.format(step),
+                                    features,
+                                    step=step,
+                                    max_outputs=5)
+                tf.summary.flush()
 
-        print(f"Epoch {epoch + 1} summary:\
-                \nMean Train Loss: {train_loss.result()}, \
-                \nMean Train Acc: {train_accuracy.result()}, \
-                \nEval Loss: {eval_loss.result()}, \
-                \nEval Acc: {eval_accuracy.result()}")
+    with eval_summary_writer.as_default():
+        tf.summary.scalar('eval_loss', eval_loss.result(), step=epoch+1)
+        tf.summary.scalar('eval_accuracy', eval_accuracy.result(), step=epoch+1)
 
-        train_loss.reset_states()
-        train_accuracy.reset_states()
+    template = 'Epoch {}, Loss: {}, Accuracy: {}, Eval Loss: {}, Eval Accuracy: {}'
+    print (template.format(epoch+1,
+                            train_loss.result(), 
+                            train_accuracy.result()*100,
+                            eval_loss.result(), 
+                            eval_accuracy.result()*100))
 
-        eval_loss.reset_states()
-        eval_accuracy.reset_states()
+    # Reset metrics every epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+    eval_loss.reset_states()
+    eval_accuracy.reset_states()
