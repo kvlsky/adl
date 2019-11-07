@@ -5,13 +5,15 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.metrics import Mean, SparseCategoricalAccuracy
 from exc2_1 import create_dataset
-import os
 import datetime
+import platform
 
-physical_devices = tf.config.experimental.list_physical_devices('GPU')
-assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
+if platform.system() != 'Darwin':
+    physical_devices = tf.config.experimental.list_physical_devices('GPU')
+    assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+else:
+    pass
 params = {
     'learning_rate': 0.001,
     'momentum': 0.9,
@@ -46,10 +48,10 @@ optimizer = SGD(learning_rate=params['learning_rate'],
 loss_object = SparseCategoricalCrossentropy(from_logits=True,
                                             reduction=tf.keras.losses.Reduction.NONE)
 # Define our metrics
-train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
-train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
-eval_loss = tf.keras.metrics.Mean('eval_loss', dtype=tf.float32)
-eval_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('eval_accuracy')
+train_loss = Mean('train_loss', dtype=tf.float32)
+train_accuracy = SparseCategoricalAccuracy('train_accuracy')
+eval_loss = Mean('eval_loss', dtype=tf.float32)
+eval_accuracy = SparseCategoricalAccuracy('eval_accuracy')
 
 
 # Inspect a batch of data:
