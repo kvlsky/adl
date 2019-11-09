@@ -1,10 +1,13 @@
 import tensorflow as tf
-import os
 import pandas as pd
+import platform
 
-physical_devices = tf.config.experimental.list_physical_devices('GPU')
-assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
+if platform.system() != 'Darwin':
+    physical_devices = tf.config.experimental.list_physical_devices('GPU')
+    assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+else:
+    pass
 
 data = pd.read_csv('Exc_2/annotation.txt', header=None,)
 labels = data[5].to_list()
@@ -38,6 +41,7 @@ with open('Exc_2/train.txt', 'w+') as train_f:
             for file, cls in zip(files[num_train:], labels[num_train:]):
                 file = 'Exc_2' + file[1:]
                 val_f.write('{},{}\n'.format(file, dict[cls]))
+
 
 def read_image(fname, mode):
     image = tf.io.read_file(fname)
