@@ -43,8 +43,9 @@ class SimpsonsNet(tf.keras.Model):
 
 optimizer = SGD(learning_rate=params['learning_rate'],
                 momentum=params['momentum'])
-loss_object = SparseCategoricalCrossentropy(from_logits=True,
-                                            reduction=tf.keras.losses.Reduction.NONE)
+# loss_object = SparseCategoricalCrossentropy(from_logits=True,
+#                                             reduction=tf.keras.losses.Reduction.NONE)
+loss_object = SparseCategoricalCrossentropy()
 # Define our metrics
 train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
 train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
@@ -62,13 +63,16 @@ model.build(input_shape=(None, 224, 224, 3))
 model.summary()
 
 
-def train_step(sample, loss=None):
+@tf.function
+def train_step(sample):
     with tf.GradientTape() as tape:
         features, labels = sample
-        # logits = model(features, training=True)
-        logits = model(features)
-        batch_loss = loss_object(y_pred=logits, y_true=labels)
+        logits = model(features, training=True)
+        # logits = model(features)
+        batch_loss = loss_object(labels, logits)
         loss = tf.reduce_sum(batch_loss) / 16
+        # loss = loss_object(labels, logits)
+
 
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -77,17 +81,22 @@ def train_step(sample, loss=None):
     train_accuracy(labels, logits)
 
 
-def eval_step(sample, loss=None):
+@tf.function
+def eval_step(sample):
     features, labels = sample
     logits = model(features)
 
-    batch_loss = loss_object(y_pred=logits, y_true=labels)
+    # loss = loss_object(labels, logits)
+
+    batch_loss = loss_object(labels, logits)
     loss = tf.reduce_sum(batch_loss) / 16
 
-    predictions = tf.nn.softmax(logits)
+    # predictions = tf.nn.softmax(logits)
 
     eval_loss(loss)
-    eval_accuracy(labels, predictions)
+    # eval_accuracy(labels, predictions)
+    eval_accuracy(labels, logits)
+
 
 
 # define checkpoints and checkpoint manager
@@ -115,16 +124,15 @@ else:
     print('\nInitializing from scratch...')
 
 # Train for 1 epoch on train_ds
-for step, sample in enumerate(ds):
-    train_step(sample, loss_object)
-    print(f'Train Epoch: 1/1 Step: {step}')
+for sample in ds:
+    train_step(sample)
 print('Trained for 1 epoch')
 
 
 for epoch in range(params['epochs']):
     for step, sample in enumerate(ds):
-        train_step(sample, loss_object)
-        print('Train Epoch: {}/{} Step: {}'.format(epoch+1, params["epochs"], step))
+        train_step(sample)
+        # print('Train Epoch: {}/{} Step: {}'.format(epoch+1, params["epochs"], step))
         if step % 100 == 0:
             features = sample[0]
             with img_train_summary_writer.as_default():
@@ -139,8 +147,9 @@ for epoch in range(params['epochs']):
         tf.summary.scalar('train_accuracy', train_accuracy.result(), step=epoch+1)
     manager.save(checkpoint_number=optimizer.iterations.numpy())
 
-    for sample in ds_eval:
-        eval_step(sample, loss_object)
+    for step, sample in enumerate(ds_eval):
+        eval_step(sample)
+        # print('Eval Epoch: {}/{} Step: {}'.format(epoch+1, params["epochs"], step))
         if step % 100 == 0:
             features = sample[0]
             with img_eval_summary_writer.as_default():
@@ -154,8 +163,9 @@ for epoch in range(params['epochs']):
         tf.summary.scalar('eval_loss', eval_loss.result(), step=epoch+1)
         tf.summary.scalar('eval_accuracy', eval_accuracy.result(), step=epoch+1)
 
-    template = 'Epoch {}, Loss: {}, Accuracy: {}, Eval Loss: {}, Eval Accuracy: {}'
+    template = 'Epoch {}/{}, Loss: {}, Accuracy: {}, Eval Loss: {}, Eval Accuracy: {}'
     print (template.format(epoch+1,
+                            params['epochs'],
                             train_loss.result(), 
                             train_accuracy.result()*100,
                             eval_loss.result(), 

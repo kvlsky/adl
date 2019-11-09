@@ -9,6 +9,10 @@ __pycache__/
 # Images
 *.jpg
 *.JPEG
+._.DS_Store
+._DS_Store
+# archives
+*.zip
 
 # Distribution / packaging
 .Python
@@ -32,8 +36,6 @@ share/python-wheels/
 MANIFEST
 logs/*
 logs/
-tf_ckpts/*
-tf_ckpts/
 .DS_Store
 *.json
 .vscode/*

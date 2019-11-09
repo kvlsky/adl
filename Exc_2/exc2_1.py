@@ -18,20 +18,26 @@ with open('Exc_2/class_map.txt', 'w+') as f:
 
 img_labels = data[[0, 5]]
 
-
 with open('Exc_2/train.txt', 'w+') as train_f:
     with open('Exc_2/val.txt', 'w+') as val_f:
-        files = img_labels[0].to_list()
+        # files = img_labels[0].to_list()
         labels = img_labels[5].to_list()
-        n_samples = len(files)
-        num_train = int(n_samples * 0.9)
-        num_val = n_samples - num_train
-        for file, cls in zip(files[:num_train], labels[:num_train]):
-            file = 'Exc_2' + file[1:]
-            train_f.write('{},{}\n'.format(file, dict[cls]))
-        for file, cls in zip(files[:num_train], labels[:num_train]):
-            file = 'Exc_2' + file[1:]
-            val_f.write('{},{}\n'.format(file, dict[cls]))
+        labels_set = list(set(labels))
+
+        for label in labels_set:
+            class_data = img_labels[img_labels[5] == label]
+            files = class_data[0].to_list()
+            labels = class_data[5].to_list()
+
+            n_samples = len(files)
+            num_train = int(n_samples * 0.9)
+
+            for file, cls in zip(files[:num_train], labels[:num_train]):
+                file = 'Exc_2' + file[1:]
+                train_f.write('{},{}\n'.format(file, dict[cls]))
+            for file, cls in zip(files[num_train:], labels[num_train:]):
+                file = 'Exc_2' + file[1:]
+                val_f.write('{},{}\n'.format(file, dict[cls]))
 
 def read_image(fname, mode):
     image = tf.io.read_file(fname)
@@ -53,12 +59,14 @@ def read_line(line, mode):
     return img, res[1]
 
 
-def create_dataset(mode='all'):
+def create_dataset(mode=None):
     train_dataset = tf.data.TextLineDataset(['Exc_2/train.txt'])
     val_dataset = tf.data.TextLineDataset(['Exc_2/val.txt'])
+    train_data = pd.read_csv('Exc_2/train.txt')
+    buffer_size = train_data.shape[0]
 
     if mode == tf.estimator.ModeKeys.TRAIN:
-        train_dataset = train_dataset.shuffle(100)
+        train_dataset = train_dataset.shuffle(buffer_size * 2)
         train_dataset = train_dataset.map(lambda x: read_line(x, mode))
         train_dataset = train_dataset.batch(16)
         return train_dataset
