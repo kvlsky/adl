@@ -23,7 +23,6 @@ img_labels = data[[0, 5]]
 
 with open('Exc_2/train.txt', 'w+') as train_f:
     with open('Exc_2/val.txt', 'w+') as val_f:
-        # files = img_labels[0].to_list()
         labels = img_labels[5].to_list()
         labels_set = list(set(labels))
 
