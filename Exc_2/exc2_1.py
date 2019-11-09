@@ -88,8 +88,15 @@ def save_img(img, name):
 
 
 ds = create_dataset(tf.estimator.ModeKeys.TRAIN)
-for img, label in ds:
-    for idx, image in enumerate(img):
-        save_img(image, '{}_'.format(idx))
-        print('saved', idx)
-    break
+
+
+def main():
+    for img, label in ds:
+        for idx, image in enumerate(img):
+            save_img(image, '{}_'.format(idx))
+            print('saved', idx)
+        break
+
+
+if __name__ == "__main__":
+    main()
