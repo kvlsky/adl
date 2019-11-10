@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import sys
 sys.path.append('./Exc_2')
-from exc2_2 import SimpsonsNet, train_step
+from exc2_2 import SimpsonsNet
 
 
 def get_tfrecord_dataset(filename):
