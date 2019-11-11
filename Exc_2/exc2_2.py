@@ -59,14 +59,11 @@ img_train_log_dir = 'Exc_2/logs/gradient_tape/' + current_time + '/img_train'
 img_eval_log_dir = 'Exc_2/logs/gradient_tape/' + current_time + '/img_eval'
 
 
-# @tf.function
+@tf.function
 def train_step(sample, model):
     with tf.GradientTape() as tape:
         features, labels = sample
         logits = model(features, training=True)
-
-        print(labels)
-        print(logits)
 
         batch_loss = loss_object(labels, logits)
         loss = tf.reduce_sum(batch_loss) / 16

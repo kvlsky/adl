@@ -14,3 +14,12 @@
 #     image = sample[0]
 #     model(image)
 # print(f'Batches per epoch: {counter}')
+
+# with open('Exc_3/predictions.txt') as p1:
+#     with open('Exc_3/predictions_advanced_model.txt') as p2:
+#         d1 = p1.read().splitlines()
+#         d2 = p2.read().splitlines()
+
+#         for x, y in zip(d1, d2):
+#             if x == y:
+#                 print(x, y)

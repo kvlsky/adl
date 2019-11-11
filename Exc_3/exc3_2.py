@@ -185,8 +185,7 @@ def main():
 
         manager.save(checkpoint_number=optimizer.iterations.numpy())
 
-        template = 'Epoch {}/{}, Loss: {}, Acc: {}, \
-                        \nEval Loss: {}, Eval Acc: {}'
+        template = 'Epoch {}/{}, Loss: {}, Acc: {}, Eval Loss: {}, Eval Acc: {}'
         print(template.format(epoch+1,
                               params['epochs'],
                               train_loss.result(),
