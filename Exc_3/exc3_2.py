@@ -9,10 +9,11 @@ import pandas as pd
 import numpy as np
 import datetime
 import platform
-from exc3_1 import create_ds, inference_step
+from exc3_1 import create_ds
 import sys
 sys.path.append('./Exc_2')
 from exc2_1 import create_dataset
+
 
 if platform.system() != 'Darwin':
     physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -85,16 +86,20 @@ data = pd.read_csv('Exc_3/predictions.txt',
 def train_step(sample, model):
     with tf.GradientTape() as tape:
         features, labels = sample
-        logits = model(features, training=True)
+        # logits = model(features, training=True)
+        logits = model(features)
 
         tr_vars = model.trainable_variables
 
         batch_loss = loss_object(labels, logits)
         reduced_loss = tf.reduce_sum(batch_loss) / params['batch_size']
-        lossL2_layers = tf.add_n([tf.nn.l2_loss(v)
-                                  for v in tr_vars]) * params['weight_decay']
-        loss = tf.add_n(
-            [reduced_loss, lossL2_layers])
+        reg_loss_feature = tf.reduce_sum(model.base_model.losses)
+        reg_loss_layers = tf.reduce_sum(model.fc2.losses)
+        loss = tf.add_n([reduced_loss, reg_loss_feature, reg_loss_layers])
+        # lossL2_layers = tf.add_n([tf.nn.l2_loss(v)
+        #                           for v in tr_vars]) * params['weight_decay']
+        # loss = tf.add_n(
+        #     [reduced_loss, lossL2_layers])
 
     gradients = tape.gradient(loss, tr_vars)
     optimizer.apply_gradients(zip(gradients, tr_vars))
@@ -106,22 +111,26 @@ def train_step(sample, model):
 @tf.function
 def eval_step(sample, model):
     features, labels = sample
-    logits = model(features)
+    logits = model(features, training=False)
 
     tr_vars = model.trainable_variables
 
     batch_loss = loss_object(labels, logits)
     reduced_loss = tf.reduce_sum(batch_loss) / params['batch_size']
-    lossL2_layers = tf.add_n([tf.nn.l2_loss(v)
-                              for v in tr_vars]) * params['weight_decay']
-    loss = tf.add_n(
-        [reduced_loss, lossL2_layers])
+    # lossL2_layers = tf.add_n([tf.nn.l2_loss(v)
+    #                           for v in tr_vars]) * params['weight_decay']
+    # loss = tf.add_n(
+    #     [reduced_loss, lossL2_layers])
+    #  uber kernel
+    reg_loss_feature = tf.reduce_sum(model.base_model.losses)
+    reg_loss_layers = tf.reduce_sum(model.fc2.losses)
+    loss = tf.add_n([reduced_loss, reg_loss_feature, reg_loss_layers])
 
     eval_loss(loss)
     eval_accuracy(labels, logits)
 
 
-def main():
+def main(restore=True):
     # TF summary writers for Tensorboard
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
     eval_summary_writer = tf.summary.create_file_writer(test_log_dir)
@@ -136,19 +145,18 @@ def main():
     ckpt = tf.train.Checkpoint(step=tf.Variable(1),
                                optimizer=optimizer,
                                net=model)
-    restore_manager = tf.train.CheckpointManager(
-        ckpt, 'Exc_2/tf_ckpts', max_to_keep=3)
-    manager = tf.train.CheckpointManager(
-        ckpt, 'Exc_3/tf_ckpts_3', max_to_keep=3)
-    ckpt.restore(restore_manager.latest_checkpoint)
-
-    # TF summary writers for Tensorboard
-    train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-
-    if restore_manager.latest_checkpoint:
-        print('\nRestored from {}'.format(restore_manager.latest_checkpoint))
+    if restore is True:
+        restore_manager = tf.train.CheckpointManager(
+            ckpt, 'Exc_2/tf_ckpts', max_to_keep=3)
+        if restore_manager.latest_checkpoint:
+            print('\nRestored from {}'.format(restore_manager.latest_checkpoint))
+            ckpt.restore(restore_manager.latest_checkpoint)
     else:
         print('\nInitializing from scratch...')
+
+    manager = tf.train.CheckpointManager(
+        ckpt, 'Exc_3/tf_ckpts', max_to_keep=3)
+    train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
     for epoch in range(params['epochs']):
         for step, sample in enumerate(ds_train):
@@ -183,7 +191,7 @@ def main():
             tf.summary.scalar(
                 'eval_accuracy', eval_accuracy.result(), step=epoch+1)
 
-        manager.save(checkpoint_number=optimizer.iterations.numpy())
+        # manager.save(checkpoint_number=optimizer.iterations.numpy())
 
         template = 'Epoch {}/{}, Loss: {}, Acc: {}, Eval Loss: {}, Eval Acc: {}'
         print(template.format(epoch+1,
@@ -198,18 +206,18 @@ def main():
         eval_loss.reset_states()
         eval_accuracy.reset_states()
 
-    with open('Exc_3/predictions_advanced_model.txt', 'w+') as file:
-        for sample in ds_test:
-            image, image_ids = sample
-            image_ids = np.array(image_ids)
-            predictions = inference_step(image, model)
+    # with open('Exc_3/predictions_advanced_model.txt', 'w+') as file:
+    #     for sample in ds_test:
+    #         image, image_ids = sample
+    #         image_ids = np.array(image_ids)
+    #         predictions = inference_step(image, model)
 
-            predicted_classes = np.argmax(predictions, axis=1)
-            predicted_classes = predicted_classes.tolist()
+    #         predicted_classes = np.argmax(predictions, axis=1)
+    #         predicted_classes = predicted_classes.tolist()
 
-            for cls, idx in zip(predicted_classes, image_ids):
-                file.write(f'{idx},{cls}\n')
+    #         for cls, idx in zip(predicted_classes, image_ids):
+    #             file.write(f'{idx},{cls}\n')
 
 
 if __name__ == "__main__":
-    main()
+    main(restore=True)

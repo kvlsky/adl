@@ -78,7 +78,7 @@ def train_step(sample, model):
 @tf.function
 def eval_step(sample, model):
     features, labels = sample
-    logits = model(features)
+    logits = model(features, training=False)
 
     batch_loss = loss_object(labels, logits)
     loss = tf.reduce_sum(batch_loss) / 16
@@ -95,7 +95,7 @@ def main():
     ckpt = tf.train.Checkpoint(step=tf.Variable(1),
                                optimizer=optimizer,
                                net=model)
-    manager = tf.train.CheckpointManager(ckpt, 'Exc_2/tf_ckpts2', max_to_keep=3)
+    manager = tf.train.CheckpointManager(ckpt, 'Exc_2/tf_ckpts', max_to_keep=3)
     ckpt.restore(manager.latest_checkpoint)
 
     # TF summary writers for Tensorboard

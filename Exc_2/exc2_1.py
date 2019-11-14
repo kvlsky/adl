@@ -45,7 +45,8 @@ with open('Exc_2/train.txt', 'w+') as train_f:
 def read_image(fname, mode):
     image = tf.io.read_file(fname)
     image = tf.image.decode_jpeg(image, channels=3)
-    image = tf.image.convert_image_dtype(image, tf.float32)
+    image = tf.cast(image, tf.float32)
+    image = (image/127.5) - 1
 
     if mode == tf.estimator.ModeKeys.EVAL:
         image = tf.image.resize(images=image, size=(224, 224))
