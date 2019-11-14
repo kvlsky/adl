@@ -23,7 +23,8 @@ def parse_example(serialized_example):
 
 def read_image(image):
     image = tf.image.decode_jpeg(image, channels=3)
-    image = tf.image.convert_image_dtype(image, tf.float32)
+    image = tf.cast(image, tf.float32)
+    image = (image/127.5) - 1
     image = tf.image.resize(images=image, size=(224, 224))
 
     return image

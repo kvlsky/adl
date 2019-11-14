@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import platform
-from exc3_1 import create_ds
+from exc3_1 import create_ds, inference_step
 import sys
 sys.path.append('./Exc_2')
 from exc2_1 import create_dataset
@@ -86,23 +86,16 @@ data = pd.read_csv('Exc_3/predictions.txt',
 def train_step(sample, model):
     with tf.GradientTape() as tape:
         features, labels = sample
-        # logits = model(features, training=True)
         logits = model(features)
-
-        tr_vars = model.trainable_variables
 
         batch_loss = loss_object(labels, logits)
         reduced_loss = tf.reduce_sum(batch_loss) / params['batch_size']
         reg_loss_feature = tf.reduce_sum(model.base_model.losses)
         reg_loss_layers = tf.reduce_sum(model.fc2.losses)
         loss = tf.add_n([reduced_loss, reg_loss_feature, reg_loss_layers])
-        # lossL2_layers = tf.add_n([tf.nn.l2_loss(v)
-        #                           for v in tr_vars]) * params['weight_decay']
-        # loss = tf.add_n(
-        #     [reduced_loss, lossL2_layers])
 
-    gradients = tape.gradient(loss, tr_vars)
-    optimizer.apply_gradients(zip(gradients, tr_vars))
+    gradients = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
     train_loss(loss)
     train_accuracy(labels, logits)
@@ -113,15 +106,9 @@ def eval_step(sample, model):
     features, labels = sample
     logits = model(features, training=False)
 
-    tr_vars = model.trainable_variables
-
     batch_loss = loss_object(labels, logits)
     reduced_loss = tf.reduce_sum(batch_loss) / params['batch_size']
-    # lossL2_layers = tf.add_n([tf.nn.l2_loss(v)
-    #                           for v in tr_vars]) * params['weight_decay']
-    # loss = tf.add_n(
-    #     [reduced_loss, lossL2_layers])
-    #  uber kernel
+
     reg_loss_feature = tf.reduce_sum(model.base_model.losses)
     reg_loss_layers = tf.reduce_sum(model.fc2.losses)
     loss = tf.add_n([reduced_loss, reg_loss_feature, reg_loss_layers])
@@ -131,6 +118,17 @@ def eval_step(sample, model):
 
 
 def main(restore=True):
+
+    # calculate how many batches per epoch we have
+    '''
+    counter = 0
+    for sample in ds_train:
+        counter += 1
+        image = sample[0]
+        model(image)
+    print(f'Batches per epoch: {counter}')
+    '''
+
     # TF summary writers for Tensorboard
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
     eval_summary_writer = tf.summary.create_file_writer(test_log_dir)
@@ -149,13 +147,14 @@ def main(restore=True):
         restore_manager = tf.train.CheckpointManager(
             ckpt, 'Exc_2/tf_ckpts', max_to_keep=3)
         if restore_manager.latest_checkpoint:
-            print('\nRestored from {}'.format(restore_manager.latest_checkpoint))
+            print('\nRestored from {}'.format(
+                restore_manager.latest_checkpoint))
             ckpt.restore(restore_manager.latest_checkpoint)
     else:
         print('\nInitializing from scratch...')
 
     manager = tf.train.CheckpointManager(
-        ckpt, 'Exc_3/tf_ckpts', max_to_keep=3)
+        ckpt, 'Exc_3/tf_ckpts_3', max_to_keep=3)
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
     for epoch in range(params['epochs']):
@@ -190,8 +189,7 @@ def main(restore=True):
             tf.summary.scalar('eval_loss', eval_loss.result(), step=epoch+1)
             tf.summary.scalar(
                 'eval_accuracy', eval_accuracy.result(), step=epoch+1)
-
-        # manager.save(checkpoint_number=optimizer.iterations.numpy())
+        manager.save(checkpoint_number=optimizer.iterations.numpy())
 
         template = 'Epoch {}/{}, Loss: {}, Acc: {}, Eval Loss: {}, Eval Acc: {}'
         print(template.format(epoch+1,
@@ -206,18 +204,27 @@ def main(restore=True):
         eval_loss.reset_states()
         eval_accuracy.reset_states()
 
-    # with open('Exc_3/predictions_advanced_model.txt', 'w+') as file:
-    #     for sample in ds_test:
-    #         image, image_ids = sample
-    #         image_ids = np.array(image_ids)
-    #         predictions = inference_step(image, model)
+    with open('Exc_3/predictions_advanced_model.txt', 'w+') as file:
+        for sample in ds_test:
+            image, image_ids = sample
+            image_ids = np.array(image_ids)
+            predictions = inference_step(image, model)
 
-    #         predicted_classes = np.argmax(predictions, axis=1)
-    #         predicted_classes = predicted_classes.tolist()
+            predicted_classes = np.argmax(predictions, axis=1)
+            predicted_classes = predicted_classes.tolist()
 
-    #         for cls, idx in zip(predicted_classes, image_ids):
-    #             file.write(f'{idx},{cls}\n')
+            for cls, idx in zip(predicted_classes, image_ids):
+                file.write(f'{idx},{cls}\n')
 
 
 if __name__ == "__main__":
-    main(restore=True)
+    '''
+    restore=False
+        without previous checkpoint model appears to converge better
+        ~ 95% accuracy after 10 epochs and 98% after 30.
+
+    restore=True
+        using previous checkpoinst accuracy is ~ 78% after 30 epochs
+
+    '''
+    main(restore=False)
