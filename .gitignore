@@ -37,8 +37,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-logs/*
-logs/
+# logs/*
+# logs/
 .DS_Store
 *.json
 .vscode/*
