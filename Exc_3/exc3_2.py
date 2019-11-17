@@ -227,4 +227,6 @@ if __name__ == "__main__":
         using previous checkpoinst accuracy is ~ 78% after 30 epochs
 
     '''
+
+    '''class_map.txt is in Exc_2/ folder'''
     main(restore=False)

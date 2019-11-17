@@ -148,3 +148,4 @@ dmypy.json
 !.vscode/extensions.json
 *.code-workspace
 nohup.out
+tf2_keras_layers_SimpleRNNCell.ipynb
