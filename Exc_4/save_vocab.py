@@ -4,6 +4,7 @@ import pickle
 
 with open('Exc_4/tinyshakespeare.txt') as text_file:
     data = text_file.read()
+    num_chars = print(len(data.split()))
 
 vocab = Counter(data).most_common()
 print(vocab)

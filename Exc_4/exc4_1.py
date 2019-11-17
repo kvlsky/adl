@@ -38,11 +38,12 @@ def test_ds(vocab_size):
     return test_ds
 
 
-with open('Exc_4/vocabulary.pkl', 'rb') as vocab_file:
-    vocab = pickle.load(vocab_file)
-    reverse_vocab = {v: k for k, v in vocab.items()}
+if __name__ == "__main__":
+    with open('Exc_4/vocabulary.pkl', 'rb') as vocab_file:
+        vocab = pickle.load(vocab_file)
+        reverse_vocab = {v: k for k, v in vocab.items()}
 
-with open('Exc_4/tinyshakespeare.txt') as text_file:
-    text = text_file.read()
+    with open('Exc_4/tinyshakespeare.txt') as text_file:
+        text = text_file.read()
 
-dataset = get_text_dataset(text, reverse_vocab)
+    dataset = get_text_dataset(text, reverse_vocab)

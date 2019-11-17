@@ -2,11 +2,13 @@ import tensorflow as tf
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from tensorflow.keras.layers import StackedRNNCells, LSTMCell, Dense, RNN
 from tensorflow.keras.losses import CategoricalCrossentropy
+from tensorflow.keras.metrics import Mean
 from exc4_1 import get_text_dataset, test_ds
 import pickle
 import time
 import datetime
 import os
+import numpy as np
 
 
 class CharRNN(tf.keras.Model):
@@ -32,18 +34,27 @@ class CharRNN(tf.keras.Model):
 
         return res
 
-    # def inference(self, inp, state=None):
-    #     zero_state = self.lstm_cell.get_initial_state(batch_size=50,
-    #                                                   dtype=tf.float32)
-    #     states = [zero_state]
-    #     o, next_state = self.lstm(inputs=inp, states=states[-1])
-    #     o = self.dense_layer(o)
-    #     states.append(state)
-    #     return o, next_state
+    def inference(self):
+        multi_rnn_cell = StackedRNNCells(self.cells)
+        initial_state = multi_rnn_cell.get_initial_state(batch_size=50,
+                                                         dtype=tf.float32)
+        sample_initial_char = test_ds(65)
+        state = [initial_state]
+        inp = sample_initial_char
+
+        for sample_step in range(50):
+            y, state = multi_rnn_cell(inputs=inp, states=state)
+            out = self.dense_layer(y)
+            inp = test_ds(65)
+
+        return out
 
 
-EPOCHS = 100
-decay_steps = int(int(65 / 50) / 50)
+EPOCHS = 10
+num_chars = 202651
+seq_len = 49
+batch_size = 50
+decay_steps = int(int(num_chars / seq_len) / batch_size)
 lr_schedule = ExponentialDecay(
     0.002,
     decay_steps=decay_steps,
@@ -55,6 +66,7 @@ checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 train_log_dir = 'Exc_4/logs/gradient_tape/' + current_time + '/train'
 loss_object = CategoricalCrossentropy(from_logits=True)
+train_loss = Mean('train_loss', dtype=tf.float32)
 
 with open('Exc_4/vocabulary.pkl', 'rb') as vocab_file:
     vocab = pickle.load(vocab_file)
@@ -64,7 +76,6 @@ with open('Exc_4/tinyshakespeare.txt') as text_file:
     text = text_file.read()
 
 dataset = get_text_dataset(text, reverse_vocab)
-ds_test = test_ds(len(vocab))
 
 model = CharRNN()
 
@@ -80,12 +91,12 @@ def train_step(inp, target):
     with tf.GradientTape() as tape:
         predictions = model(inp)
         batch_loss = loss_object(target, predictions)
-        loss = tf.reduce_mean(batch_loss)
+        loss = tf.reduce_sum(batch_loss) / 50
 
     grads = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
-    return loss
+    train_loss(loss)
 
 
 @tf.function
@@ -98,77 +109,47 @@ def sample(inp, state):
 
 
 @tf.function
-def generate_text(model, start_string, char2idx, idx2char):
-    # Evaluation step (generating text using the learned model)
+def generate_text(model, char2idx, idx2char):
+    predictions = model.inference()
 
-    # Number of characters to generate
-    num_generate = 1000
-
-    # Converting our start string to numbers (vectorizing)
-    input_eval = [char2idx[s] for s in start_string]
-    input_eval = tf.expand_dims(input_eval, 0)
-
-    # Empty string to store our results
-    text_generated = []
-
-    # Low temperatures results in more predictable text.
-    # Higher temperatures results in more surprising text.
-    # Experiment to find the best setting.
-    temperature = 1.0
-
-    # Here batch size == 1
-    model.reset_states()
-    for i in range(num_generate):
-        predictions = model(input_eval)
-        # remove the batch dimension
-        predictions = tf.squeeze(predictions, 0)
-
-        # using a categorical distribution to predict the word returned by the model
-        predictions = predictions / temperature
-        predicted_id = tf.random.categorical(
-            predictions, num_samples=1)[-1, 0].numpy()
-
-        # We pass the predicted word as the next input to the model
-        # along with the previous hidden state
-        input_eval = tf.expand_dims([predicted_id], 0)
-
-        text_generated.append(idx2char[predicted_id])
-
-    return (start_string + ''.join(text_generated))
+    return predictions
 
 
-def main():
-    train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+def main(train=True):
+    if train is True:
+        train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    for epoch in range(EPOCHS):
-        start = time.time()
-        model.reset_states()
+        for epoch in range(EPOCHS):
+            start = time.time()
+            # model.reset_states()
 
-        for (batch_n, (inp, target)) in enumerate(dataset):
-            loss = train_step(inp, target)
+            for (batch_n, (inp, target)) in enumerate(dataset):
+                train_step(inp, target)
+                loss = train_loss.result()
 
-            if batch_n % 50 == 0:
-                template = 'Epoch {} Batch {} Loss {}'
-                print(template.format(epoch+1, batch_n, loss))
+                if batch_n % 50 == 0:
+                    template = 'Epoch {} Batch {} Loss {}'
+                    print(template.format(epoch+1, batch_n, loss))
 
-        if epoch % 5 == 0:
-            model.save_weights(checkpoint_prefix.format(epoch=epoch+1))
+            if epoch % 5 == 0:
+                model.save_weights(checkpoint_prefix.format(epoch=epoch+1))
 
-        print('Epoch {} Loss {:.4f}'.format(epoch+1, loss))
-        print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
-        with train_summary_writer.as_default():
-            tf.summary.scalar('loss', loss, step=epoch+1)
-            tf.summary.scalar('learning_rate', lr_schedule, step=epoch+1)
+            print('Epoch {} Loss {:.4f}'.format(epoch+1, loss))
+            print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
+            with train_summary_writer.as_default():
+                tf.summary.scalar('loss', loss, step=epoch+1)
+                tf.summary.scalar('learning_rate', lr_schedule, step=epoch+1)
+
+            train_loss.reset_states()
 
         model.save_weights(checkpoint_prefix.format(epoch=epoch+1))
-
     model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
     text_generated = generate_text(model=model,
-                                   start_string=ds_test,
+                                   #    start_string=ds_test,
                                    char2idx=reverse_vocab,
                                    idx2char=vocab)
     print(text_generated)
 
 
 if __name__ == "__main__":
-    main()
+    main(train=False)
