@@ -17,5 +17,4 @@ we do not use moset_common() method
 '''
 with open('Exc_4/vocabulary.pkl', 'wb+') as vocab_file:
     idx2char = {i: u[0] for i, u in enumerate(vocab)}
-    print(idx2char)
     pickle.dump(idx2char, vocab_file, pickle.HIGHEST_PROTOCOL)

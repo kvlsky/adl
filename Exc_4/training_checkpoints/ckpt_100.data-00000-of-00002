@@ -1,31 +1,53 @@
-ã+ÁY
-5
-	lstm_cell
-dense_layer
-	cells
-lstm
-,
-
-kernel
-recurrent_kernel
-bias
+Â	ˆŒW
+&
+dense_layer
+	cells
+lstm
 
 
-kernel
-	bias
+kernel
+bias
 
-0
-1
-2
+0
+1
+2
 
-	cells
-TR
-VARIABLE_VALUEchar_rnn/rnn/kernel+lstm_cell/kernel/.ATTRIBUTES/VARIABLE_VALUE
-hf
-VARIABLE_VALUEchar_rnn/rnn/recurrent_kernel5lstm_cell/recurrent_kernel/.ATTRIBUTES/VARIABLE_VALUE
-PN
-VARIABLE_VALUEchar_rnn/rnn/bias)lstm_cell/bias/.ATTRIBUTES/VARIABLE_VALUE
+	cells
 XV
 VARIABLE_VALUEchar_rnn/dense/kernel-dense_layer/kernel/.ATTRIBUTES/VARIABLE_VALUE
 TR
 VARIABLE_VALUEchar_rnn/dense/bias+dense_layer/bias/.ATTRIBUTES/VARIABLE_VALUE
+,
+
+	kernel
+
+recurrent_kernel
+bias
+,
+
+kernel
+recurrent_kernel
+bias
+,
+
+kernel
+recurrent_kernel
+bias
+RP
+VARIABLE_VALUEchar_rnn/rnn/kernel)cells/0/kernel/.ATTRIBUTES/VARIABLE_VALUE
+fd
+VARIABLE_VALUEchar_rnn/rnn/recurrent_kernel3cells/0/recurrent_kernel/.ATTRIBUTES/VARIABLE_VALUE
+NL
+VARIABLE_VALUEchar_rnn/rnn/bias'cells/0/bias/.ATTRIBUTES/VARIABLE_VALUE
+RP
+VARIABLE_VALUEchar_rnn/rnn/kernel)cells/1/kernel/.ATTRIBUTES/VARIABLE_VALUE
+fd
+VARIABLE_VALUEchar_rnn/rnn/recurrent_kernel3cells/1/recurrent_kernel/.ATTRIBUTES/VARIABLE_VALUE
+NL
+VARIABLE_VALUEchar_rnn/rnn/bias'cells/1/bias/.ATTRIBUTES/VARIABLE_VALUE
+RP
+VARIABLE_VALUEchar_rnn/rnn/kernel)cells/2/kernel/.ATTRIBUTES/VARIABLE_VALUE
+fd
+VARIABLE_VALUEchar_rnn/rnn/recurrent_kernel3cells/2/recurrent_kernel/.ATTRIBUTES/VARIABLE_VALUE
+NL
+VARIABLE_VALUEchar_rnn/rnn/bias'cells/2/bias/.ATTRIBUTES/VARIABLE_VALUE

@@ -1,31 +1,0 @@
-ã+ÁY
-5
-	lstm_cell
-dense_layer
-	cells
-lstm
-,
-
-kernel
-recurrent_kernel
-bias
-
-
-kernel
-	bias
-
-0
-1
-2
-
-	cells
-TR
-VARIABLE_VALUEchar_rnn/rnn/kernel+lstm_cell/kernel/.ATTRIBUTES/VARIABLE_VALUE
-hf
-VARIABLE_VALUEchar_rnn/rnn/recurrent_kernel5lstm_cell/recurrent_kernel/.ATTRIBUTES/VARIABLE_VALUE
-PN
-VARIABLE_VALUEchar_rnn/rnn/bias)lstm_cell/bias/.ATTRIBUTES/VARIABLE_VALUE
-XV
-VARIABLE_VALUEchar_rnn/dense/kernel-dense_layer/kernel/.ATTRIBUTES/VARIABLE_VALUE
-TR
-VARIABLE_VALUEchar_rnn/dense/bias+dense_layer/bias/.ATTRIBUTES/VARIABLE_VALUE

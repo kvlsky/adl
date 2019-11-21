@@ -21,7 +21,7 @@ def get_text_dataset(text=None,
     ds = ds.map(lambda x: (x[:-1], x[1:]))
 
     if mode == tf.estimator.ModeKeys.TRAIN:
-        ds = ds.shuffle(10000)
+        ds = ds.shuffle(1115394)
     else:
         pass
     ds = ds.batch(batch_size, drop_remainder=True)
